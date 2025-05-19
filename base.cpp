@@ -2,6 +2,7 @@
 #include <cstring>
 #include <vector>
 #include <iomanip>
+#include <algorithm>
 
 using namespace std;
 
@@ -13,7 +14,7 @@ public:
     static vector<string> password;
     static vector<string> email;
     static vector<int> superuserstat;
-    static vector<int> cartID;
+  
 public:
     // along with that it also acts as a abstract class, creating layouts for the auth class
     virtual int checksignupentry(string input_email, string input_username, string input_pass) = 0;
@@ -99,11 +100,12 @@ public:
         return -1;
     }
 };
-struct Product
+class Product
 {   public:
     string name;
     int code;
     float price;
+    int type;
     
     Product()
     {
@@ -163,6 +165,7 @@ public:
             cin >> p.code;
             cout << "Enter item Price: ";
             cin >> p.price;
+            p.type=0;
             electronics.push_back(p);
         }
     }
@@ -182,6 +185,7 @@ public:
             cin >> p.code;
             cout << "Enter item Price: ";
             cin >> p.price;
+            p.type=1;
             clothing.push_back(p);
         }
     }
@@ -201,6 +205,7 @@ public:
             cin >> p.code;
             cout << "Enter item Price: ";
             cin >> p.price;
+            p.type=2;
             toys.push_back(p);
         }
     }
@@ -210,15 +215,15 @@ public:
         cout << "\nItems in the Store:\n";
         cout << "-------------------\nElectronics:\n";
         for (const auto &item : electronics)
-            cout << "- " << item.name << " " << "Code " << item.code << "Price " << item.price << endl;
+            cout << "- " << item.name << "|" << " Code " << item.code << " | Price " << item.price << endl;
 
         cout << "-------------------\nClothing:\n";
         for (const auto &item : clothing)
-            cout << "- " << item.name << " " << "Code " << item.code << "Price " << item.price << endl;
+            cout << "- " << item.name << "|" << " Code " << item.code << " | Price " << item.price << endl;
 
         cout << "-------------------\nToys:\n";
         for (const auto &item : toys)
-            cout << "- " << item.name << " " << "Code " << item.code << "Price " << item.price <<endl;
+            cout << "- " << item.name << "|" << " Code " << item.code << " | Price " << item.price <<endl;
         cout << "-------------------\n";
     }
 
@@ -300,7 +305,7 @@ public:
 };
 class user
 {
-    // the connection is made here as superuser is also a type of user
+   
 private:
     string email;
     string pass;
@@ -354,7 +359,7 @@ class store_actions{
         if (product.code != -1)
         {
             cart.push_back(product);
-            cout << product.name << "Successfully Added to Cart!!\n";
+            cout << product.name << " Successfully Added to Cart!!\n";
         }
         else
         {
@@ -362,19 +367,41 @@ class store_actions{
         }
     }
 
-    void viewCart()
+    int viewCart()
     {
         cout << "\n--- Your Cart ---\n";
         if (cart.empty())
         {
             cout << "Cart is empty.\n";
+            return 0;
         }
         else
         {
+            int tempchoice;
             for (const auto &item : cart)
                 item.display();
+            cout << "\n=== CART MENU ===\n";
+            cout << "1. Purchase Goods\n";
+            cout << "2. Shop More\n";
+            cout << "3. Clean Cart\n";
+            cin >> tempchoice;
+            return tempchoice;
         }
         cout << "------------------\n";
+    }
+
+    void clean_cart(Shop &store,int itemID){
+        int index;
+        for (int i=0;i < cart.size();i++){
+            if(itemID==cart[i].code){
+                index=i;
+                break;
+            }
+        }
+        cout<<"Removed "<<cart[index].name<<" from the cart.\n";
+        cart.erase(cart.begin()+index);
+
+
     }
 
 };
@@ -382,12 +409,12 @@ class store_actions{
 class transaction:public Auth {
     public:
     vector<Product> purchase;
-    float total_amount;
-    int transaction;
-    float remaining_balance;
+    float total_amount=0;
+    int transaction_status;
+    float wallet=0;
 
 
-    void purchase_code(Shop &store , int buy ,float wallet)
+    void purchase_code(Shop &store , int buy )
     {
         Product product2 = store.findProduct(buy);
         if(product2.code != -1)
@@ -395,12 +422,13 @@ class transaction:public Auth {
             if(wallet >= product2.price){
                 purchase.push_back(product2);
                 total_amount = total_amount + product2.price;
-                cout<< product2.name << "Successfully Added to Purchase!!\n";
+                cout<< product2.name << " Successfully Added to Purchase!!\n";
             }
             else {
-                cout<<"\n Not enough Balance in wallet";
+                cout<<"\nNot enough Balance in wallet";
+                return;
             }
-            cout<<"\n Total Amount = "<<total_amount;
+            cout<<"\nTotal Amount = "<<total_amount<<endl;
             
         }
         else
@@ -410,11 +438,9 @@ class transaction:public Auth {
 
     }
 
-    void viewPurchase(float wallet)
+    void viewPurchase()
     {
-        cout << "\n--- Your Purchase ---\n";
-        cout<<"\n Total_amount to be paid ="<<total_amount;
-
+        cout << "\n--- Your Purchase ---\n\n";
         if (purchase.empty())
         {
             cout << "No Purchase.\n";
@@ -424,13 +450,18 @@ class transaction:public Auth {
             for (const auto &item2 : purchase)
                 item2.display2();
         }
+        cout<<"\nTotal amount to be paid = "<<total_amount;
 
-        cout<< "\n Enter 1 to carry out the transaction=";
-        cin>>transaction;
+        
 
-        if(transaction == 1) {
+        cout<< "\n Enter 1 to carry out the transaction = ";
+        cin>>transaction_status;
+
+        if(transaction_status == 1 && wallet>total_amount) {
             cout<<"\n Payment Successful !!! Visit Again...";
-            remaining_balance = wallet - total_amount ;
+            wallet = wallet - total_amount ;
+            total_amount=0;
+            purchase.clear();
 
         }
         else {
@@ -441,11 +472,11 @@ class transaction:public Auth {
     }
 
     float current(){
-        cout<<"\n Current Balance =";
-        return total_amount;
+        
+        return wallet;
     }
 
-    void setcredit(float *walletaddress, int userid){
+    void setcredit( int userid){
 
         cout<<"Verify Your Identity\n";
         string temp1, temp2;
@@ -454,12 +485,12 @@ class transaction:public Auth {
         cout << "Enter Your Password: ";
         cin >> temp2;
         int useridtemp=verifyloginentry(temp1,temp2);
-        cout<<useridtemp<<" "<<userid;
+        
 
         if(useridtemp==userid){
-            cout<<"Your Account has been Verified.\n What is the Sum you will like to add to our store credit? : ";
-            cin>> *walletaddress;
-            cout<<"Your Digital wallet has been credited with "<<*walletaddress<<" store credits";
+            cout<<"Your Account has been Verified.\nWhat is the Sum you will like to add to our store credit? : ";
+            cin>> wallet;
+            cout<<"Your Digital wallet has been credited with "<<wallet<<" store credits";
         }
         else{
             cout<<"Your login attempt was unsuccessful, please try again";
@@ -509,7 +540,7 @@ public:
 };
 
 
-class System : public superuser,public transaction
+class System : public superuser, public customer
 {
 private:
     int userid = -1;
@@ -522,7 +553,6 @@ public:
         int code;
         int buy;
         float money;
-        vector<float> wallet={100};
         int process_payment;
         customer c0;
         vector<customer> c={c0};
@@ -550,7 +580,6 @@ public:
                     {c0.signup();
                     customer ctemp;
                     c.push_back(ctemp);
-                    wallet.push_back(0);
                     break;}
                 case 3:
                     cout << "Exiting...\n";
@@ -566,13 +595,11 @@ public:
                     cout << "\n===== SHOP MENU =====\n";
                     
                     cout << "1. View Items\n";
-                    cout << "2. View Cart\n";
-                    cout << "3. Add to Cart\n";
+                    cout << "2. Add to Cart\n";
+                    cout << "3. View Cart\n";
                     cout << "4. Credit Balance\n";
                     cout << "5. Current Balance\n";
-                    cout << "6. Purchase\n";
-                    cout << "7. View Purchase\n";
-                    cout << "8. Logout\n";
+                    cout << "6. Logout\n";
                     
                     cout << "Enter your choice: ";
                     cin >> wish;
@@ -583,37 +610,63 @@ public:
                         mainstore.display();
                         break;
                     case 2:
-                        c[userid].viewCart();
-                        break;
-                    case 3:
                         cout << "Enter product code to add: ";
                         cin >> code;
                         c[userid].add_To_Cart(mainstore, code);
                         break;
+                    
+                    case 3:
+                    {   int tempchoice;
+                        tempchoice= c[userid].viewCart();
+                        if(tempchoice==2){
+                            break;
+                        }
+                        else if(tempchoice==3){
+                            cout << "Enter product code to remove: ";
+                            cin >> code;
+                            c[userid].clean_cart(mainstore, code);
+                        }
+                        else{
+                            while(true){
+                                cout << "Enter codes of Items to Buy :\n";
+                                cin>>buy;
+                                c[userid].purchase_code(mainstore,buy);
+                                
+                                cout<<"Do You wish to buy more products? Respond with 1 for Yes, 0 for no,2 for exit : ";
+                                cin>>tempchoice;
+                                if(tempchoice==1){
+                                    continue;
+                                }
+                                else if(tempchoice==2){
+                                    break;
+                                }
+                                else{
+                                    c[userid].viewPurchase();
+                                    break;
+                                }
+                            }
+                            
+                            
+                        }
+                        break;}
+
                     case 4:
                     {
-                        float *tempptr= &wallet[userid];
-                        c[userid].setcredit(tempptr,userid);
+                        
+                        c[userid].setcredit(userid);
                         break;}
                     case 5:
                         money = c[userid].current();
-                        cout<<"\n Current Balance in wallet ="<<money;
-                        break;
-                    case 6:
-                        cout << "Enter codes of Items to Buy :\n";
-                        cin>>buy;
-                        c[userid].purchase_code(mainstore,buy,wallet[userid]);
-                        break;
-                    case 7:
-                        c[userid].viewPurchase(wallet[userid]);
+                        cout<<"\n Current Balance in wallet = "<<money;
                         break;
                         
-                    case 8:
+                    case 6:
                         cout << "Logging out...\n\n";
                         userid = -1;
                         break; 
                     default:
                         cout << "Invalid choice. Try again.\n\n";
+                        break;
                     }
                 }
                 else
