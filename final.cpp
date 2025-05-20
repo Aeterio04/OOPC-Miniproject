@@ -14,7 +14,7 @@ public:
     static vector<string> password;
     static vector<string> email;
     static vector<int> superuserstat;
-    static vector<int> cartID;
+  
 public:
     // along with that it also acts as a abstract class, creating layouts for the auth class
     virtual int checksignupentry(string input_email, string input_username, string input_pass) = 0;
@@ -100,7 +100,7 @@ public:
         return -1;
     }
 };
-struct Product
+class Product
 {   public:
     string name;
     int code;
@@ -305,7 +305,7 @@ public:
 };
 class user
 {
-    // the connection is made here as superuser is also a type of user
+   
 private:
     string email;
     string pass;
@@ -398,7 +398,7 @@ class store_actions{
                 break;
             }
         }
-        cout<<"Removed "<<cart[i].name<<" from the cart.\n";
+        cout<<"Removed "<<cart[index].name<<" from the cart.\n";
         cart.erase(cart.begin()+index);
 
 
@@ -540,7 +540,7 @@ public:
 };
 
 
-class System : public superuser,public transaction
+class System : public superuser, public customer
 {
 private:
     int userid = -1;
